@@ -1,6 +1,6 @@
 {
   "name": "simple-ts-rpc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "This library provides an easy and type-safe method for remote procedure calls (RPCs) over a string-based communication channel in TypeScript.",
   "main": "dist/umd/simple-ts-rpc.js",
   "module": "dist/esm/simple-ts-rpc.mjs",
