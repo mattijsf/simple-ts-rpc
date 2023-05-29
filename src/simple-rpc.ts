@@ -1,5 +1,6 @@
 export type MessageBase = {
   id: string
+  senderId: string
 }
 
 export type Message = MessageBase & {
@@ -32,15 +33,25 @@ export type Channel = {
   addMessageListener(listener: (message: string) => void): void
 }
 
+function generateId(): string {
+  const timestamp = Date.now().toString(36)
+  const randomPart = Math.random().toString(36).substring(2, 8)
+  return `${timestamp}-${randomPart}`
+}
+
 export class Server<T> {
+  private senderId: string
+
   constructor(private channel: Channel, private proceduresImplementation: T) {
+    this.senderId = `server-${generateId()}`
     this.channel.addMessageListener(message => this.handleMessage(message))
   }
 
   private async handleMessage(message: string): Promise<void> {
-    const { id, procedure, args: incomingArgs } = JSON.parse(message) as Message
+    const parsedMessage = JSON.parse(message) as AnyMessage
+    if (parsedMessage.senderId === this.senderId) return
 
-    console.log("MESSAGE", message)
+    const { id, procedure, args: incomingArgs } = parsedMessage as Message
 
     const deserializedArgs = incomingArgs.map(arg => {
       if (arg.type === "callback") {
@@ -50,6 +61,7 @@ export class Server<T> {
             callbackId: arg.id,
             args: callbackArgs,
             id: "noop",
+            senderId: this.senderId,
           }
           this.channel.sendMessage(JSON.stringify(callbackMessage))
         }
@@ -65,6 +77,7 @@ export class Server<T> {
         messageType: "resultMessage",
         id: id,
         result: result,
+        senderId: this.senderId,
       }
       this.channel.sendMessage(JSON.stringify(resultMessage))
     } catch (error) {
@@ -72,6 +85,7 @@ export class Server<T> {
         messageType: "errorMessage",
         id: id,
         error: `${error}`,
+        senderId: this.senderId,
       }
       this.channel.sendMessage(JSON.stringify(errorMessage))
     }
@@ -82,8 +96,10 @@ export class Client<T> {
   private procedures: { [id: string]: (result: any) => void } = {}
   private callbacks: { [id: string]: (...args: any[]) => void } = {}
   private nextId = 0
+  private senderId: string
 
   constructor(private channel: Channel) {
+    this.senderId = `client-${generateId()}`
     this.channel.addMessageListener(message => this.handleMessage(message))
   }
 
@@ -108,6 +124,7 @@ export class Client<T> {
               id,
               procedure: property,
               args: serializedArgs,
+              senderId: this.senderId,
             }
             this.channel.sendMessage(JSON.stringify(message))
             return new Promise((resolve, _reject) => {
@@ -120,24 +137,25 @@ export class Client<T> {
   }
 
   private handleMessage(message: string): void {
-    const messageObj = JSON.parse(message) as AnyMessage
+    const parsedMessage = JSON.parse(message) as AnyMessage
+    if (parsedMessage.senderId === this.senderId) return
 
-    switch (messageObj.messageType) {
+    switch (parsedMessage.messageType) {
       case "resultMessage": {
-        const { id, result } = messageObj
+        const { id, result } = parsedMessage
         this.procedures[id](result)
         delete this.procedures[id]
         break
       }
 
       case "errorMessage": {
-        const { id, error } = messageObj
+        const { id, error } = parsedMessage
         this.procedures[id](Promise.reject(new Error(error)))
         break
       }
 
       case "callbackMessage": {
-        const { callbackId, args } = messageObj
+        const { callbackId, args } = parsedMessage
         this.callbacks[callbackId](...args)
         break
       }
