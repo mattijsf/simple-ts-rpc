@@ -1,0 +1,139 @@
+{
+  "name": "simple-rpc",
+  "version": "0.2.0",
+  "description": "This library provides an easy and type-safe method for remote procedure calls (RPCs) over a string-based communication channel in TypeScript.",
+  "main": "dist/umd/simple-rpc.js",
+  "module": "dist/esm/simple-rpc.mjs",
+  "types": "dist/umd/simple-rpc.d.ts",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "dist",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!**/.*"
+  ],
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "prepack": "rollup -c",
+    "release": "release-it",
+    "bootstrap": "yarn install"
+  },
+  "keywords": [
+    "rpc",
+    "simple"
+  ],
+  "repository": "https://github.com/mattijsf/simple-rpc",
+  "author": "Mattijs Fuijkschot <mattijs@fuijkschot.nl> (https://github.com/mattijsf)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mattijsf/simple-rpc/issues"
+  },
+  "homepage": "https://github.com/mattijsf/simple-rpc#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.21.5",
+    "@commitlint/config-conventional": "^17.0.2",
+    "@evilmartians/lefthook": "^1.2.2",
+    "@react-native-community/eslint-config": "^3.0.2",
+    "@release-it/conventional-changelog": "^5.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-terser": "0.4.0",
+    "@rollup/plugin-typescript": "11.0.0",
+    "@types/jest": "^29.5.1",
+    "commitlint": "^17.0.2",
+    "del-cli": "^5.0.0",
+    "eslint": "^8.4.1",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "jest": "^28.1.1",
+    "prettier": "^2.0.5",
+    "prettier-plugin-organize-imports": "^3.2.2",
+    "release-it": "^15.0.0",
+    "rimraf": "4.1.2",
+    "rollup": "3.10.1",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.4"
+  },
+  "resolutions": {},
+  "peerDependencies": {},
+  "engines": {
+    "node": ">= 16.0.0"
+  },
+  "packageManager": "^yarn@1.22.15",
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.ts?$": "ts-jest"
+    },
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "release-it": {
+    "git": {
+      "commitMessage": "chore: release ${version}",
+      "tagName": "v${version}"
+    },
+    "npm": {
+      "publish": true
+    },
+    "github": {
+      "release": true
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": "angular"
+      }
+    }
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": [
+      "@react-native-community",
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": [
+        "error",
+        {
+          "trailingComma": "es5",
+          "singleQuote": false,
+          "printWidth": 100,
+          "semi": false,
+          "arrowParens": "avoid"
+        }
+      ],
+      "no-return-await": "error",
+      "@typescript-eslint/no-shadow": "error",
+      "@typescript-eslint/explicit-function-return-type": "error",
+      "@typescript-eslint/no-non-null-assertion": "error"
+    }
+  },
+  "eslintIgnore": [
+    "node_modules/",
+    "dist/"
+  ],
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
+  },
+  "dependencies": {}
+}
