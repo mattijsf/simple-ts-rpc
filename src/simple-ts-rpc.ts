@@ -1,36 +1,50 @@
-export type MessageBase = {
+type MessageBase = {
   id: string
   senderId: string
+  messageType: string
 }
 
-export type Message = MessageBase & {
+type InvokeMessage = MessageBase & {
   messageType: "message"
   procedure: string
   args: any[]
 }
 
-export type CallbackMessage = MessageBase & {
+type CallbackMessage = MessageBase & {
   messageType: "callbackMessage"
   callbackId: string
   id: "noop"
   args: any[]
 }
 
-export type ResultMessage = MessageBase & {
+type ResultMessage = MessageBase & {
   messageType: "resultMessage"
   result: any
 }
 
-export type ErrorMessage = MessageBase & {
+type ErrorMessage = MessageBase & {
   messageType: "errorMessage"
   error: string
 }
 
-export type AnyMessage = Message | CallbackMessage | ResultMessage | ErrorMessage
+type CallbackArg = {
+  type: "callback"
+  callbackId: string
+}
 
-export type Channel = {
+type AnyMessage = InvokeMessage | CallbackMessage | ResultMessage | ErrorMessage
+
+export interface Channel {
   sendMessage(message: string): void
   addMessageListener(listener: (message: string) => void): void
+  removeMessageListener(listener: (message: string) => void): void
+}
+
+function isCallbackArg(arg: any): arg is CallbackArg {
+  if (arg.type === "callback" && typeof arg.callbackId === "string") {
+    return true
+  }
+  return false
 }
 
 function generateId(): string {
@@ -47,50 +61,65 @@ export class Server<T> {
     this.channel.addMessageListener(message => this.handleMessage(message))
   }
 
+  private createMessage<M extends MessageBase>(message: Omit<M, "senderId">): M {
+    return { ...message, senderId: this.senderId } as M
+  }
+
+  private wrapCallbackArgs(args: (CallbackArg | any)[]): any[] {
+    return args.map(arg => {
+      if (isCallbackArg(arg)) {
+        return (...callbackArgs: any[]) => {
+          const callbackMessage = this.createMessage<CallbackMessage>({
+            messageType: "callbackMessage",
+            callbackId: arg.callbackId,
+            args: callbackArgs,
+            id: "noop",
+          })
+          this.sendMessage(callbackMessage)
+        }
+      }
+      return arg
+    })
+  }
+
+  private sendMessage(message: MessageBase): void {
+    this.channel.sendMessage(JSON.stringify(message))
+  }
+
   private async handleMessage(message: string): Promise<void> {
     const parsedMessage = JSON.parse(message) as AnyMessage
     if (parsedMessage.senderId === this.senderId) return
 
     if (parsedMessage.messageType === "message") {
       const { id, procedure, args: incomingArgs } = parsedMessage
-
-      const deserializedArgs = incomingArgs.map(arg => {
-        if (arg.type === "callback") {
-          return (...callbackArgs: any[]) => {
-            const callbackMessage: CallbackMessage = {
-              messageType: "callbackMessage",
-              callbackId: arg.id,
-              args: callbackArgs,
-              id: "noop",
-              senderId: this.senderId,
-            }
-            this.channel.sendMessage(JSON.stringify(callbackMessage))
-          }
-        }
-        return arg
-      })
+      const wrappedArgs = this.wrapCallbackArgs(incomingArgs)
 
       try {
-        const result = await (this.proceduresImplementation[procedure as keyof T] as any)(
-          ...deserializedArgs
-        )
-        const resultMessage: ResultMessage = {
+        const procedureFn = this.proceduresImplementation[procedure as keyof T]
+        if (typeof procedureFn !== "function") {
+          throw new Error(`Procedure '${procedure}' is not a function`)
+        }
+
+        const result = await procedureFn.bind(this.proceduresImplementation)(...wrappedArgs)
+        const resultMessage = this.createMessage<ResultMessage>({
           messageType: "resultMessage",
           id: id,
           result: result,
-          senderId: this.senderId,
-        }
-        this.channel.sendMessage(JSON.stringify(resultMessage))
+        })
+        this.sendMessage(resultMessage)
       } catch (error) {
-        const errorMessage: ErrorMessage = {
+        const errorMessage = this.createMessage<ErrorMessage>({
           messageType: "errorMessage",
           id: id,
           error: `${error}`,
-          senderId: this.senderId,
-        }
-        this.channel.sendMessage(JSON.stringify(errorMessage))
+        })
+        this.sendMessage(errorMessage)
       }
     }
+  }
+
+  cleanup(): void {
+    this.channel.removeMessageListener(this.handleMessage)
   }
 }
 
@@ -104,6 +133,10 @@ export class Client<T> {
     this.channel.addMessageListener(message => this.handleMessage(message))
   }
 
+  private createMessage<M extends MessageBase>(message: Omit<M, "senderId">): M {
+    return { ...message, senderId: this.senderId } as M
+  }
+
   get proxy(): T {
     return new Proxy(
       {},
@@ -115,19 +148,18 @@ export class Client<T> {
               if (typeof arg === "function") {
                 const callbackId = `${messageId}-${i}`
                 this.callbacks[callbackId] = arg
-                return { type: "callback", id: callbackId }
+                return { type: "callback", callbackId } as CallbackArg
               }
               return arg
             })
-            const message: Message = {
-              senderId: this.senderId,
+            const message = this.createMessage<InvokeMessage>({
               messageType: "message",
               id: messageId,
               procedure: property,
               args: messageArgs,
-            }
+            })
             this.channel.sendMessage(JSON.stringify(message))
-            return new Promise((resolve, _reject) => {
+            return new Promise(resolve => {
               this.procedures[messageId] = resolve
             })
           }
@@ -160,5 +192,9 @@ export class Client<T> {
         break
       }
     }
+  }
+
+  cleanup(): void {
+    this.channel.removeMessageListener(this.handleMessage)
   }
 }

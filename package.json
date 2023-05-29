@@ -1,10 +1,10 @@
 {
-  "name": "simple-rpc",
+  "name": "simple-ts-rpc",
   "version": "0.2.0",
   "description": "This library provides an easy and type-safe method for remote procedure calls (RPCs) over a string-based communication channel in TypeScript.",
-  "main": "dist/umd/simple-rpc.js",
-  "module": "dist/esm/simple-rpc.mjs",
-  "types": "dist/umd/simple-rpc.d.ts",
+  "main": "dist/umd/simple-ts-rpc.js",
+  "module": "dist/esm/simple-ts-rpc.mjs",
+  "types": "dist/umd/simple-ts-rpc.d.ts",
   "sideEffects": false,
   "files": [
     "src",
@@ -26,13 +26,13 @@
     "rpc",
     "simple"
   ],
-  "repository": "https://github.com/mattijsf/simple-rpc",
+  "repository": "https://github.com/mattijsf/simple-ts-rpc",
   "author": "Mattijs Fuijkschot <mattijs@fuijkschot.nl> (https://github.com/mattijsf)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mattijsf/simple-rpc/issues"
+    "url": "https://github.com/mattijsf/simple-ts-rpc/issues"
   },
-  "homepage": "https://github.com/mattijsf/simple-rpc#readme",
+  "homepage": "https://github.com/mattijsf/simple-ts-rpc#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

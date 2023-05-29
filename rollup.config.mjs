@@ -37,10 +37,10 @@ function config({ format, minify, input, ext = "js" }) {
 sync("dist")
 
 export default [
-  { input: "simple-rpc", format: "esm", minify: false, ext: "mjs" },
-  { input: "simple-rpc", format: "esm", minify: true, ext: "mjs" },
-  { input: "simple-rpc", format: "esm", minify: false },
-  { input: "simple-rpc", format: "esm", minify: true },
-  { input: "simple-rpc", format: "umd", minify: false },
-  { input: "simple-rpc", format: "umd", minify: true },
+  { input: "simple-ts-rpc", format: "esm", minify: false, ext: "mjs" },
+  { input: "simple-ts-rpc", format: "esm", minify: true, ext: "mjs" },
+  { input: "simple-ts-rpc", format: "esm", minify: false },
+  { input: "simple-ts-rpc", format: "esm", minify: true },
+  { input: "simple-ts-rpc", format: "umd", minify: false },
+  { input: "simple-ts-rpc", format: "umd", minify: true },
 ].map(config)

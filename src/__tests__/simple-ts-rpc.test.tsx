@@ -1,4 +1,4 @@
-import { Channel, Client, Server } from "./../simple-rpc"
+import { Channel, Client, Server } from "../simple-ts-rpc"
 
 interface MyAPI {
   add(a: number, b: number): Promise<number>
@@ -70,6 +70,10 @@ class TestChannel implements Channel {
 
   addMessageListener(listener: (message: string) => void): void {
     this.listeners.push(listener)
+  }
+
+  removeMessageListener(listener: (message: string) => void): void {
+    this.listeners = this.listeners.filter(l => l !== listener)
   }
 }
 
