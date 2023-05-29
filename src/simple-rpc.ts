@@ -51,43 +51,45 @@ export class Server<T> {
     const parsedMessage = JSON.parse(message) as AnyMessage
     if (parsedMessage.senderId === this.senderId) return
 
-    const { id, procedure, args: incomingArgs } = parsedMessage as Message
+    if (parsedMessage.messageType === "message") {
+      const { id, procedure, args: incomingArgs } = parsedMessage
 
-    const deserializedArgs = incomingArgs.map(arg => {
-      if (arg.type === "callback") {
-        return (...callbackArgs: any[]) => {
-          const callbackMessage: CallbackMessage = {
-            messageType: "callbackMessage",
-            callbackId: arg.id,
-            args: callbackArgs,
-            id: "noop",
-            senderId: this.senderId,
+      const deserializedArgs = incomingArgs.map(arg => {
+        if (arg.type === "callback") {
+          return (...callbackArgs: any[]) => {
+            const callbackMessage: CallbackMessage = {
+              messageType: "callbackMessage",
+              callbackId: arg.id,
+              args: callbackArgs,
+              id: "noop",
+              senderId: this.senderId,
+            }
+            this.channel.sendMessage(JSON.stringify(callbackMessage))
           }
-          this.channel.sendMessage(JSON.stringify(callbackMessage))
         }
-      }
-      return arg
-    })
+        return arg
+      })
 
-    try {
-      const result = await (this.proceduresImplementation[procedure as keyof T] as any)(
-        ...deserializedArgs
-      )
-      const resultMessage: ResultMessage = {
-        messageType: "resultMessage",
-        id: id,
-        result: result,
-        senderId: this.senderId,
+      try {
+        const result = await (this.proceduresImplementation[procedure as keyof T] as any)(
+          ...deserializedArgs
+        )
+        const resultMessage: ResultMessage = {
+          messageType: "resultMessage",
+          id: id,
+          result: result,
+          senderId: this.senderId,
+        }
+        this.channel.sendMessage(JSON.stringify(resultMessage))
+      } catch (error) {
+        const errorMessage: ErrorMessage = {
+          messageType: "errorMessage",
+          id: id,
+          error: `${error}`,
+          senderId: this.senderId,
+        }
+        this.channel.sendMessage(JSON.stringify(errorMessage))
       }
-      this.channel.sendMessage(JSON.stringify(resultMessage))
-    } catch (error) {
-      const errorMessage: ErrorMessage = {
-        messageType: "errorMessage",
-        id: id,
-        error: `${error}`,
-        senderId: this.senderId,
-      }
-      this.channel.sendMessage(JSON.stringify(errorMessage))
     }
   }
 }
@@ -95,7 +97,6 @@ export class Server<T> {
 export class Client<T> {
   private procedures: { [id: string]: (result: any) => void } = {}
   private callbacks: { [id: string]: (...args: any[]) => void } = {}
-  private nextId = 0
   private senderId: string
 
   constructor(private channel: Channel) {
@@ -109,26 +110,25 @@ export class Client<T> {
       {
         get: (target, property: string) => {
           return (...args: any[]) => {
-            const id = (this.nextId++).toString()
-            const callbackArgs = args.filter(arg => typeof arg === "function")
-            const nonCallbackArgs = args.filter(arg => typeof arg !== "function")
-            const serializedArgs = nonCallbackArgs.map((arg, i) =>
-              callbackArgs[i] ? { type: "callback", id: id + i } : arg
-            )
-            this.procedures[id] = (): void => {}
-            callbackArgs.forEach((callback, i) => {
-              this.callbacks[id + i] = callback
+            const messageId = generateId()
+            const messageArgs = args.map((arg, i) => {
+              if (typeof arg === "function") {
+                const callbackId = `${messageId}-${i}`
+                this.callbacks[callbackId] = arg
+                return { type: "callback", id: callbackId }
+              }
+              return arg
             })
             const message: Message = {
-              messageType: "message",
-              id,
-              procedure: property,
-              args: serializedArgs,
               senderId: this.senderId,
+              messageType: "message",
+              id: messageId,
+              procedure: property,
+              args: messageArgs,
             }
             this.channel.sendMessage(JSON.stringify(message))
             return new Promise((resolve, _reject) => {
-              this.procedures[id] = resolve
+              this.procedures[messageId] = resolve
             })
           }
         },

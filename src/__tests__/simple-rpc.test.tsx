@@ -4,6 +4,12 @@ interface MyAPI {
   add(a: number, b: number): Promise<number>
   greet(name: string): Promise<string>
   processItems(items: string[], callback: (processedItem: string) => void): Promise<void>
+  triggerTwoCallbacks(
+    echo1: string,
+    echo2: string,
+    callback1: (arg: string) => void,
+    callback2: (arg: string) => void
+  ): Promise<void>
   subscribeToEvents(callback: (event: string) => void): Promise<void>
   triggerEvent(event: string): Promise<void>
   errorProne(): Promise<void>
@@ -26,6 +32,16 @@ class MyAPIServer implements MyAPI {
     }
   }
 
+  async triggerTwoCallbacks(
+    echo1: string,
+    echo2: string,
+    callback1: (arg: string) => void,
+    callback2: (arg: string) => void
+  ): Promise<void> {
+    callback1(echo1)
+    callback2(echo2)
+  }
+
   async subscribeToEvents(callback: (event: string) => void): Promise<void> {
     this.eventListeners.push(callback)
   }
@@ -37,7 +53,9 @@ class MyAPIServer implements MyAPI {
   }
 
   async errorProne(): Promise<void> {
-    throw new Error("Something went wrong!")
+    var error = new Error("Something went wrong!")
+    error.name = "RPCError"
+    throw error
   }
 }
 
@@ -72,7 +90,7 @@ describe("RPC Library", () => {
     expect(result).toEqual(3)
   })
 
-  test("Should handle methods with callbacks", async () => {
+  test("Should handle methods with one callback", async () => {
     const items = ["apple", "banana", "cherry"]
     const processedItems: string[] = []
 
@@ -81,14 +99,29 @@ describe("RPC Library", () => {
     expect(processedItems).toEqual(items.map(item => item.toUpperCase()))
   })
 
+  test("Should handle methods with two callbacks", async () => {
+    let response1 = ""
+    let response2 = ""
+    await client.proxy.triggerTwoCallbacks(
+      "Hello",
+      "World",
+      arg => (response1 = arg),
+      arg => (response2 = arg)
+    )
+
+    expect(response1).toEqual("Hello")
+    expect(response2).toEqual("World")
+  })
+
   test("Should allow subscription to events", async () => {
     const events: string[] = []
 
     await client.proxy.subscribeToEvents(event => events.push(event))
 
-    await client.proxy.triggerEvent("Test event")
+    await client.proxy.triggerEvent("Test event 1")
+    await client.proxy.triggerEvent("Test event 2")
 
-    expect(events).toEqual(["Test event"])
+    expect(events).toEqual(["Test event 1", "Test event 2"])
   })
 
   test("Should handle server errors", async () => {
