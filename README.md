@@ -1,11 +1,13 @@
 # Simple TS RPC
 
-This is a TypeScript-based Remote Procedure Call (RPC) library that allows bidirectional communication between two endpoints through a string-based channel. This library works using promises and supports methods with callbacks.
+A TypeScript-based Remote Procedure Call (RPC) library that is almost too simple, though my plan is too keep it that way.
 
 ## Key Features
 
-- Type safety with TypeScript
-- Ultra simple string-based channel interface:
+- Typescript
+- No dependencies
+- Proxy-based client
+- Ultra simple string-based `Channel` interface:
 ```typescript
 interface Channel = {
     sendMessage(message: string): void
@@ -13,8 +15,10 @@ interface Channel = {
     removeMessageListener(listener: (message: string) => void): void
 }
 ```
-- Support for methods with on or more callback parameters.
-- Server-side rrror handling
+- Support for methods with on or more callback parameters
+- Support for subscription/event callbacks
+- Server-side error handling
+- Lacks most other features
 
 
 ## Installation
@@ -30,7 +34,9 @@ yarn add simple-ts-rpc
 
 ## Usage
 
-To use this library, you need to define an API interface and a server class implementing the API.
+To use this library, you need to define an API interface and supply the API implementation to the server. You'll also need to provide a `Channel` implementation which depends on your use case.
+
+See [simple-ts-rpc.test.ts](src/__tests__/simple-ts-rpc.test.ts) for example usage.
 
 ```typescript
 interface MyAPI {
