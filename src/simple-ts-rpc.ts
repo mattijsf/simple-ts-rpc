@@ -1,9 +1,23 @@
-type MessageType = "invokeMessage" | "callbackMessage" | "resultMessage" | "errorMessage"
+type MessageType =
+  | "invokeMessage"
+  | "callbackMessage"
+  | "resultMessage"
+  | "errorMessage"
+  | "clientReadyMessage"
+  | "serverReadyMessage"
 
 type MessageBase = {
   id: string
   senderId: string
   messageType: MessageType
+}
+
+type ClientReadyMessage = MessageBase & {
+  messageType: "clientReadyMessage"
+}
+
+type ServerReadyMessage = MessageBase & {
+  messageType: "serverReadyMessage"
 }
 
 type InvokeMessage = MessageBase & {
@@ -34,7 +48,13 @@ type CallbackArg = {
   callbackId: string
 }
 
-type AnyMessage = InvokeMessage | CallbackMessage | ResultMessage | ErrorMessage
+type AnyMessage =
+  | InvokeMessage
+  | CallbackMessage
+  | ResultMessage
+  | ErrorMessage
+  | ClientReadyMessage
+  | ServerReadyMessage
 
 export interface Channel {
   sendMessage(message: string): void
@@ -61,6 +81,15 @@ export class Server<T> {
   constructor(private channel: Channel, private proceduresImplementation: T) {
     this.senderId = `server-${generateId()}`
     this.channel.addMessageListener(message => this.handleMessage(message))
+    this.sendServerReadyMessage()
+  }
+
+  private sendServerReadyMessage(): void {
+    const serverReadyMessage = this.createMessage<ServerReadyMessage>({
+      id: generateId(),
+      messageType: "serverReadyMessage",
+    })
+    this.sendMessage(serverReadyMessage)
   }
 
   private createMessage<M extends MessageBase>(message: Omit<M, "senderId">): M {
@@ -92,7 +121,9 @@ export class Server<T> {
     const parsedMessage = JSON.parse(message) as AnyMessage
     if (parsedMessage.senderId === this.senderId) return
 
-    if (parsedMessage.messageType === "invokeMessage") {
+    if (parsedMessage.messageType === "clientReadyMessage") {
+      this.sendServerReadyMessage()
+    } else if (parsedMessage.messageType === "invokeMessage") {
       const { id, procedure, args: incomingArgs } = parsedMessage
       const wrappedArgs = this.wrapCallbackArgs(incomingArgs)
 
@@ -126,6 +157,8 @@ export class Server<T> {
 }
 
 export class Client<T> {
+  private _isConnected = false
+  private onConnectHandler: (() => void) | null = null
   private procedures: { [id: string]: (result: any) => void } = {}
   private callbacks: { [id: string]: (...args: any[]) => void } = {}
   private senderId: string
@@ -133,10 +166,35 @@ export class Client<T> {
   constructor(private channel: Channel) {
     this.senderId = `client-${generateId()}`
     this.channel.addMessageListener(message => this.handleMessage(message))
+
+    this.sendClientReadyMessage()
   }
 
   private createMessage<M extends MessageBase>(message: Omit<M, "senderId">): M {
     return { ...message, senderId: this.senderId } as M
+  }
+
+  private sendClientReadyMessage(): void {
+    const connectMessage = this.createMessage<ClientReadyMessage>({
+      id: generateId(),
+      messageType: "clientReadyMessage",
+    })
+    this.sendMessage(connectMessage)
+  }
+
+  private sendMessage(message: MessageBase): void {
+    this.channel.sendMessage(JSON.stringify(message))
+  }
+
+  onConnect(handler: () => void): void {
+    this.onConnectHandler = handler
+    if (this.isConnected) {
+      handler()
+    }
+  }
+
+  get isConnected(): boolean {
+    return this._isConnected
   }
 
   get proxy(): T {
@@ -160,7 +218,7 @@ export class Client<T> {
               procedure: property,
               args: messageArgs,
             })
-            this.channel.sendMessage(JSON.stringify(message))
+            this.sendMessage(message)
             return new Promise(resolve => {
               this.procedures[messageId] = resolve
             })
@@ -175,6 +233,14 @@ export class Client<T> {
     if (parsedMessage.senderId === this.senderId) return
 
     switch (parsedMessage.messageType) {
+      case "serverReadyMessage": {
+        const connected = !this._isConnected
+        this._isConnected = true
+        if (connected && this.onConnectHandler) {
+          this.onConnectHandler()
+        }
+        break
+      }
       case "resultMessage": {
         const { id, result } = parsedMessage
         this.procedures[id](result)

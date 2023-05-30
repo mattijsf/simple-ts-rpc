@@ -64,7 +64,8 @@ class TestChannel implements Channel {
 
   sendMessage(message: string): void {
     for (const listener of this.listeners) {
-      listener(message)
+      // using setImmediate to mimic the asynchronous nature of this channel
+      setImmediate(() => listener(message))
     }
   }
 
@@ -96,6 +97,35 @@ describe("RPC Library", () => {
   test("Should perform basic RPC", async () => {
     const result = await client.proxy.add(1, 2)
     expect(result).toEqual(3)
+  })
+
+  test("Client onConnect should be called when server is created AFTER the client", done => {
+    const channel2 = new TestChannel()
+    const client2 = new Client<{}>(channel2)
+
+    expect(client2.isConnected).toBeFalsy()
+
+    client2.onConnect(() => {
+      expect(client2.isConnected).toBeTruthy()
+      done()
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const server2 = new Server<{}>(channel2, {})
+  })
+
+  test("Client onConnect should be called when server is created BEFORE the client", done => {
+    const channel2 = new TestChannel()
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const server2 = new Server<{}>(channel2, {})
+    const client2 = new Client<{}>(channel2)
+
+    expect(client2.isConnected).toBeFalsy()
+
+    client2.onConnect(() => {
+      expect(client2.isConnected).toBeTruthy()
+      done()
+    })
   })
 
   test("Should handle methods with one callback", async () => {
