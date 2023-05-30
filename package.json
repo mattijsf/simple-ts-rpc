@@ -1,6 +1,6 @@
 {
   "name": "tango-rpc",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "description": "TypeScript-based Remote Procedure Call (RPC) library that is almost too simple.",
   "main": "dist/umd/tango-rpc.js",
   "module": "dist/esm/tango-rpc.mjs",
