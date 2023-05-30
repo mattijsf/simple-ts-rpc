@@ -1,11 +1,13 @@
+type MessageType = "invokeMessage" | "callbackMessage" | "resultMessage" | "errorMessage"
+
 type MessageBase = {
   id: string
   senderId: string
-  messageType: string
+  messageType: MessageType
 }
 
 type InvokeMessage = MessageBase & {
-  messageType: "message"
+  messageType: "invokeMessage"
   procedure: string
   args: any[]
 }
@@ -90,7 +92,7 @@ export class Server<T> {
     const parsedMessage = JSON.parse(message) as AnyMessage
     if (parsedMessage.senderId === this.senderId) return
 
-    if (parsedMessage.messageType === "message") {
+    if (parsedMessage.messageType === "invokeMessage") {
       const { id, procedure, args: incomingArgs } = parsedMessage
       const wrappedArgs = this.wrapCallbackArgs(incomingArgs)
 
@@ -153,7 +155,7 @@ export class Client<T> {
               return arg
             })
             const message = this.createMessage<InvokeMessage>({
-              messageType: "message",
+              messageType: "invokeMessage",
               id: messageId,
               procedure: property,
               args: messageArgs,
