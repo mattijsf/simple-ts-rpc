@@ -9,7 +9,7 @@ function config({ format, minify, input, ext = "js" }) {
   return {
     input: `./src/${input}.ts`,
     output: {
-      name: "SimpleRPC",
+      name: "TangoRPC",
       file: `${dir}/${input}${minifierSuffix}.${ext}`,
       format,
       sourcemap: true,
@@ -37,10 +37,10 @@ function config({ format, minify, input, ext = "js" }) {
 sync("dist")
 
 export default [
-  { input: "simple-ts-rpc", format: "esm", minify: false, ext: "mjs" },
-  { input: "simple-ts-rpc", format: "esm", minify: true, ext: "mjs" },
-  { input: "simple-ts-rpc", format: "esm", minify: false },
-  { input: "simple-ts-rpc", format: "esm", minify: true },
-  { input: "simple-ts-rpc", format: "umd", minify: false },
-  { input: "simple-ts-rpc", format: "umd", minify: true },
+  { input: "tango-rpc", format: "esm", minify: false, ext: "mjs" },
+  { input: "tango-rpc", format: "esm", minify: true, ext: "mjs" },
+  { input: "tango-rpc", format: "esm", minify: false },
+  { input: "tango-rpc", format: "esm", minify: true },
+  { input: "tango-rpc", format: "umd", minify: false },
+  { input: "tango-rpc", format: "umd", minify: true },
 ].map(config)

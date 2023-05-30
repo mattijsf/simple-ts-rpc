@@ -1,6 +1,6 @@
-# Simple TS RPC
+# tango-rpc
 
-A TypeScript-based Remote Procedure Call (RPC) library that is almost too simple, though my plan is too keep it that way.
+TypeScript-based Remote Procedure Call (RPC) library that is almost too simple.
 
 ## Key Features
 
@@ -24,11 +24,11 @@ interface Channel = {
 ## Installation
 
 ```sh
-npm install simple-ts-rpc
+npm install tango-rpc
 ```
 or
 ```sh
-yarn add simple-ts-rpc
+yarn add tango-rpc
 ```
 
 
@@ -36,7 +36,7 @@ yarn add simple-ts-rpc
 
 To use this library, you need to define an API interface and supply the API implementation to the server. You'll also need to provide a `Channel` implementation which depends on your use case.
 
-See [simple-ts-rpc.test.ts](src/__tests__/simple-ts-rpc.test.ts) for example usage.
+See [tango-rpc.test.ts](src/__tests__/tango-rpc.test.ts) for example usage.
 
 ```typescript
 interface MyAPI {
@@ -72,4 +72,12 @@ myAPIClient.processItems(['apple', 'banana', 'cherry'], item => console.log(`Pro
 myAPIClient.subscribeToEvents(event => console.log(`Received event: ${event}`));
 myAPIClient.triggerEvent('Test event');
 myAPIClient.errorProne().catch(error => console.log(`Caught error: ${error.message}`));
+```
+
+In case you need to wait until the the server & client are ready you can use the client's `onConnect` event which ensures that the proxy is ready for interaction:
+
+```typescript
+client.onConnect(() => {
+  console.log(client.isConnected) // true
+})
 ```

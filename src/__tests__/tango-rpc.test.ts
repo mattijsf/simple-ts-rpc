@@ -1,4 +1,4 @@
-import { Channel, Client, Server } from "../simple-ts-rpc"
+import { Channel, Client, Server } from "../tango-rpc"
 
 interface MyAPI {
   add(a: number, b: number): Promise<number>
