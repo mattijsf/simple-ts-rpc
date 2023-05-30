@@ -78,7 +78,6 @@ class TestChannel implements Channel {
 }
 
 describe("RPC Library", () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let server: Server<MyAPI>
   let client: Client<MyAPI>
   let channel: TestChannel
@@ -87,6 +86,11 @@ describe("RPC Library", () => {
     channel = new TestChannel()
     server = new Server<MyAPI>(channel, new MyAPIServer())
     client = new Client<MyAPI>(channel)
+  })
+
+  afterEach(() => {
+    server.cleanup()
+    client.cleanup()
   })
 
   test("Should perform basic RPC", async () => {
